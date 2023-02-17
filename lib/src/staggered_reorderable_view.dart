@@ -30,13 +30,19 @@ class StaggeredReorderableView extends StatelessWidget {
   final int columnNum;
 
   /// 边距
-  final double padding;
+  final double spacing;
 
   /// 是否允许拖拽
   final bool canDrag;
 
   /// 布局区域高度，仅在[Axis.horizontal]时生效
   final double containerHeight;
+
+  /// The background [Color] of the container. Defaults to [Colors.grey]
+  final Color backgroundColor;
+
+  /// The background [Color] of the container while being dragged. Defaults to [Colors.white]
+  final Color onDragBackgroundColor;
 
   /// 创建一个可拖动的不规则图形瀑布流.
   ///
@@ -53,48 +59,36 @@ class StaggeredReorderableView extends StatelessWidget {
   /// [collation] : 拖拽交换规则,[true]为交换，[false]为插入.
   ///
   /// [containerHeight] : 当 [scrollDirection] 选择 [Axis.horizontal] 时,才会生效.
-  ///
-  const StaggeredReorderableView.customer({
-    Key? key,
-    required List<CustomerItem> children,
-    Axis scrollDirection = Axis.vertical,
-    Duration duration = const Duration(milliseconds: 300),
-    Duration antiShakeDuration = const Duration(milliseconds: 100),
-    bool collation = false,
-    int columnNum = 3,
-    double padding = 5.0,
-    bool canDrag = true,
-    double containerHeight = 600.0
-  }) : this(
-          key: key,
-          children: children,
-          scrollDirection: scrollDirection,
-          duration: duration,
-          antiShakeDuration: antiShakeDuration,
-          collation: collation,
-          columnNum: columnNum,
-          padding: padding,
-          canDrag: canDrag,
-    containerHeight: containerHeight
-        );
-
   const StaggeredReorderableView({
     Key? key,
     required this.children,
+    this.columnNum = 3,
+    // TODO: Fix spacing error that doesn't center objects. The problem is that it leaves the spacing in the last position of a row, making all widgets align "start" in the row
+    this.spacing = 5.0,
+    this.canDrag = true,
+    this.collation = false,
+    this.containerHeight = 600.0,
+    this.backgroundColor = Colors.grey,
+    this.onDragBackgroundColor = Colors.white,
     this.scrollDirection = Axis.vertical,
     this.duration = const Duration(milliseconds: 300),
     this.antiShakeDuration = const Duration(milliseconds: 100),
-    this.collation = false,
-    this.columnNum = 3,
-    this.padding = 5.0,
-    this.canDrag = true,
-    this.containerHeight = 600.0,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return CustomerMultiChildView(
-        children, columnNum, padding, duration, antiShakeDuration, canDrag,
-        collation: collation, scrollDirection: scrollDirection, containerHeight: containerHeight);
+      itemAll: children,
+      columnNum: columnNum,
+      spacing: spacing,
+      duration: duration,
+      antiShakeDuration: antiShakeDuration,
+      canDrag: canDrag,
+      collation: collation,
+      scrollDirection: scrollDirection,
+      containerHeight: containerHeight,
+      backgroundColor: backgroundColor,
+      onDragBackgroundColor: onDragBackgroundColor,
+    );
   }
 }

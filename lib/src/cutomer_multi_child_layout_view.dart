@@ -19,32 +19,35 @@ double itemCell = 0.0;
 class CustomerMultiChildView extends StatefulWidget {
   final int columnNum;
   final List<CustomerItem> itemAll;
-  final double padding;
+  final double spacing;
   final Duration duration;
   final Duration antiShakeDuration;
   final bool collation;
   final bool canDrag;
   final Axis scrollDirection;
+  final Color backgroundColor;
+  final Color onDragBackgroundColor;
   final double containerHeight;
-  const CustomerMultiChildView(
-    this.itemAll,
-    this.columnNum,
-    this.padding,
-    this.duration,
-    this.antiShakeDuration,
-    this.canDrag, {
+  const CustomerMultiChildView({
     Key? key,
-    this.collation = false,
-    this.containerHeight = 600.0,
-    this.scrollDirection = Axis.vertical,
+    required this.itemAll,
+    required this.spacing,
+    required this.duration,
+    required this.canDrag,
+    required this.collation,
+    required this.columnNum,
+    required this.containerHeight,
+    required this.scrollDirection,
+    required this.backgroundColor,
+    required this.antiShakeDuration,
+    required this.onDragBackgroundColor,
   }) : super(key: key);
 
   @override
   _CustomerMultiChildViewState createState() => _CustomerMultiChildViewState();
 }
 
-class _CustomerMultiChildViewState extends State<CustomerMultiChildView>
-    with SingleTickerProviderStateMixin {
+class _CustomerMultiChildViewState extends State<CustomerMultiChildView> with SingleTickerProviderStateMixin {
   /// 正在拖拽的item
   int dragItem = -1;
 
@@ -105,18 +108,16 @@ class _CustomerMultiChildViewState extends State<CustomerMultiChildView>
   /// 交换数据
   void exchangeItem(moveIndex, toIndex) {
     if (itemChangeAll.isEmpty) {
-      for (var element in itemAll) {
+      for (CustomerItem element in itemAll) {
         itemChangeAll.add(element);
       }
     }
     if (!widget.collation) {
       setState(() {
-        var moveData =
-            itemChangeAll.firstWhere((element) => element.index == moveIndex);
-        var reIndex = itemChangeAll.indexOf(moveData);
+        CustomerItem moveData = itemChangeAll.firstWhere((element) => element.index == moveIndex);
+        int reIndex = itemChangeAll.indexOf(moveData);
         itemChangeAll.remove(moveData);
-        var receiveIndex =
-            itemChangeAll.indexWhere((element) => element.index == toIndex);
+        int receiveIndex = itemChangeAll.indexWhere((element) => element.index == toIndex);
         if (receiveIndex >= reIndex) receiveIndex += 1;
         itemChangeAll.insert(receiveIndex, moveData);
       });
@@ -126,15 +127,13 @@ class _CustomerMultiChildViewState extends State<CustomerMultiChildView>
       //   print(element.toString());
       // });
       setState(() {
-        var moveData =
-            itemChangeAll.firstWhere((element) => element.index == moveIndex);
-        var reIndex = itemChangeAll.indexOf(moveData);
+        CustomerItem moveData = itemChangeAll.firstWhere((element) => element.index == moveIndex);
+        int reIndex = itemChangeAll.indexOf(moveData);
         itemChangeAll.remove(moveData);
-        var receiveIndex =
-            itemChangeAll.indexWhere((element) => element.index == toIndex);
+        int receiveIndex = itemChangeAll.indexWhere((element) => element.index == toIndex);
         // if (receiveIndex >= reIndex) receiveIndex += 1;
         itemChangeAll.insert(receiveIndex, moveData);
-        var receiveData = itemChangeAll.removeAt(receiveIndex + 1);
+        CustomerItem receiveData = itemChangeAll.removeAt(receiveIndex + 1);
         itemChangeAll.insert(reIndex, receiveData);
       });
       // print("交换后状态");
@@ -156,45 +155,12 @@ class _CustomerMultiChildViewState extends State<CustomerMultiChildView>
         child: widget.canDrag
             ? LongPressDraggable(
                 data: itemAll[index].index,
-                child: DragTarget(
-                  builder: (context, candidateData, rejectedData) {
-                    return Container(
-                      width: itemAll[index].crossAxisCellCount! * itemCell,
-                      height: itemAll[index].mainAxisCellCount! * itemCell,
-                      color: Colors.grey,
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: double.infinity,
-                        child: Center(child: itemAll[index].child),
-                      ),
-                    );
-                  },
-                  onWillAccept: (moveData) {
-                    // print('=== onWillAccept: $moveData ==> ${itemAll[index].index}');
-                    var accept = moveData != null;
-                    if (accept &&
-                        dragItem != itemAll[index].index! &&
-                        itemAll[index].index != moveData) {
-                      antiShakeProcessing(moveData, itemAll[index].index);
-                    }
-                    return accept;
-                  },
-                  onLeave: (moveData) {
-                    // print('=== onLeave: $moveData ==> ${itemAll[index].index}');
-                    if (moveData == nowMoveIndex) {
-                      nowMoveIndex = -1;
-                    }
-                    if (itemAll[index].index == nowAcceptIndex) {
-                      nowAcceptIndex = -1;
-                    }
-                  },
-                ),
                 childWhenDragging: null,
                 feedback: Material(
                   child: Container(
                     width: itemAll[index].crossAxisCellCount! * itemCell,
                     height: itemAll[index].mainAxisCellCount! * itemCell,
-                    color: Colors.white,
+                    color: widget.onDragBackgroundColor,
                     child: SizedBox(
                       width: double.infinity,
                       height: double.infinity,
@@ -217,11 +183,42 @@ class _CustomerMultiChildViewState extends State<CustomerMultiChildView>
                   nowAcceptIndex = -1;
                   nowMoveIndex = -1;
                 },
+                child: DragTarget(
+                  builder: (context, candidateData, rejectedData) {
+                    return Container(
+                      width: itemAll[index].crossAxisCellCount! * itemCell,
+                      height: itemAll[index].mainAxisCellCount! * itemCell,
+                      color: widget.backgroundColor,
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: double.infinity,
+                        child: Center(child: itemAll[index].child),
+                      ),
+                    );
+                  },
+                  onWillAccept: (moveData) {
+                    // print('=== onWillAccept: $moveData ==> ${itemAll[index].index}');
+                    bool accept = moveData != null;
+                    if (accept && dragItem != itemAll[index].index! && itemAll[index].index != moveData) {
+                      antiShakeProcessing(moveData, itemAll[index].index);
+                    }
+                    return accept;
+                  },
+                  onLeave: (moveData) {
+                    // print('=== onLeave: $moveData ==> ${itemAll[index].index}');
+                    if (moveData == nowMoveIndex) {
+                      nowMoveIndex = -1;
+                    }
+                    if (itemAll[index].index == nowAcceptIndex) {
+                      nowAcceptIndex = -1;
+                    }
+                  },
+                ),
               )
             : Container(
                 width: itemAll[index].crossAxisCellCount! * itemCell,
                 height: itemAll[index].mainAxisCellCount! * itemCell,
-                color: Colors.grey,
+                color: widget.backgroundColor,
                 child: SizedBox(
                   width: double.infinity,
                   height: double.infinity,
@@ -232,7 +229,7 @@ class _CustomerMultiChildViewState extends State<CustomerMultiChildView>
 
   List<Widget> generateList() {
     List<Widget> list = [];
-    for (var index = 0; index < itemAll.length; index++) {
+    for (int index = 0; index < itemAll.length; index++) {
       list.add(generateItem(index));
     }
     return list;
@@ -249,16 +246,13 @@ class _CustomerMultiChildViewState extends State<CustomerMultiChildView>
     return SingleChildScrollView(
       scrollDirection: widget.scrollDirection,
       child: SizedBox(
-        height: widget.scrollDirection == Axis.vertical
-            ? maxContainerHeight
-            : widget.containerHeight,
+        height: widget.scrollDirection == Axis.vertical ? maxContainerHeight : widget.containerHeight,
         width: maxContainerWidth,
         child: CustomMultiChildLayout(
           delegate: widget.scrollDirection == Axis.vertical
-              ? ProxyVerticalClass(itemAll, itemChangeAll, process,
-                  widget.columnNum, widget.padding)
-              : ProxyHorizontalClass(itemAll, itemChangeAll, process,
-                  widget.columnNum, widget.padding, widget.containerHeight),
+              ? ProxyVerticalClass(itemAll, itemChangeAll, process, widget.columnNum, widget.spacing)
+              : ProxyHorizontalClass(
+                  itemAll, itemChangeAll, process, widget.columnNum, widget.spacing, widget.containerHeight),
           children: generateList(),
         ),
       ),
@@ -274,8 +268,7 @@ class ProxyVerticalClass extends MultiChildLayoutDelegate {
   final int columnNum;
   final double padding;
 
-  ProxyVerticalClass(this.itemAll, this.itemChangeAll, this.process,
-      this.columnNum, this.padding) {
+  ProxyVerticalClass(this.itemAll, this.itemChangeAll, this.process, this.columnNum, this.padding) {
     // 累计每列的高度
     columnH = List.generate(columnNum, (index) {
       return 0.0;
@@ -296,21 +289,18 @@ class ProxyVerticalClass extends MultiChildLayoutDelegate {
   int checkNowRow(Size size, double itemCell, List columnH, List columnLastH) {
     int insertIndex = -1;
     // 找到最大值
-    double maxHeight = columnH.fold(
-        columnH[0],
-        (previousValue, element) =>
-            previousValue > element ? previousValue : element);
+    double maxHeight =
+        columnH.fold(columnH[0], (previousValue, element) => previousValue > element ? previousValue : element);
 
     // 判断本行是否都已经按行放满
-    for (var indexX = 0; indexX < columnH.length; indexX++) {
+    for (int indexX = 0; indexX < columnH.length; indexX++) {
       if (columnH[indexX] - columnLastH[indexX] < itemCell) {
         // 判断当前点是否符合长度
         int length = size.width ~/ itemCell;
         if (columnH.length - indexX >= length) {
           insertIndex = indexX;
-          for (var indexY = 0; indexY < length; indexY++) {
-            if (columnH[indexY + indexX] - columnLastH[indexY + indexX] <
-                itemCell) {
+          for (int indexY = 0; indexY < length; indexY++) {
+            if (columnH[indexY + indexX] - columnLastH[indexY + indexX] < itemCell) {
             } else if (maxHeight - columnH[indexY + indexX] < size.height) {
               insertIndex = -1;
               break;
@@ -322,16 +312,15 @@ class ProxyVerticalClass extends MultiChildLayoutDelegate {
     }
 
     // 判断本行是否存在可以放当前widget的空隙
-    for (var indexX = 0; indexX < columnH.length; indexX++) {
+    for (int indexX = 0; indexX < columnH.length; indexX++) {
       // print("$indexX: $maxHeight - ${columnH[indexX]} >= ${size.height}");
       if (maxHeight - columnH[indexX] >= size.height) {
         // 判断当前点是否符合长度
         int length = size.width ~/ itemCell;
         if (columnH.length - indexX >= length) {
           insertIndex = indexX;
-          for (var indexY = 0; indexY < length; indexY++) {
-            if (columnH[indexY + indexX] - columnLastH[indexY + indexX] <
-                itemCell) {
+          for (int indexY = 0; indexY < length; indexY++) {
+            if (columnH[indexY + indexX] - columnLastH[indexY + indexX] < itemCell) {
             } else if (maxHeight - columnH[indexY + indexX] < size.height) {
               insertIndex = -1;
               break;
@@ -351,11 +340,9 @@ class ProxyVerticalClass extends MultiChildLayoutDelegate {
   /// 修改columnH
   /// 将上一行高度更新成当前行的最高高度
   void updateColumnH(List columnH, List columnLastH) {
-    double maxHeight = columnH.fold(
-        columnH[0],
-        (previousValue, element) =>
-            previousValue > element ? previousValue : element);
-    for (var index = 0; index < columnH.length; index++) {
+    double maxHeight =
+        columnH.fold(columnH[0], (previousValue, element) => previousValue > element ? previousValue : element);
+    for (int index = 0; index < columnH.length; index++) {
       columnH[index] = maxHeight;
       columnLastH[index] = maxHeight;
     }
@@ -375,14 +362,10 @@ class ProxyVerticalClass extends MultiChildLayoutDelegate {
       Size itemSize = layoutChild(
           itemAll[i].id!,
           BoxConstraints(
-              minWidth: itemCell * (itemAll[i].crossAxisCellCount!) +
-                  ((itemAll[i].crossAxisCellCount!) - 1) * padding,
-              maxWidth: itemCell * (itemAll[i].crossAxisCellCount!) +
-                  ((itemAll[i].crossAxisCellCount!) - 1) * padding,
-              minHeight: itemCell * (itemAll[i].mainAxisCellCount!) +
-                  ((itemAll[i].mainAxisCellCount!) - 1) * padding,
-              maxHeight: itemCell * (itemAll[i].mainAxisCellCount!) +
-                  ((itemAll[i].mainAxisCellCount!) - 1) * padding));
+              minWidth: itemCell * (itemAll[i].crossAxisCellCount!) + ((itemAll[i].crossAxisCellCount!) - 1) * padding,
+              maxWidth: itemCell * (itemAll[i].crossAxisCellCount!) + ((itemAll[i].crossAxisCellCount!) - 1) * padding,
+              minHeight: itemCell * (itemAll[i].mainAxisCellCount!) + ((itemAll[i].mainAxisCellCount!) - 1) * padding,
+              maxHeight: itemCell * (itemAll[i].mainAxisCellCount!) + ((itemAll[i].mainAxisCellCount!) - 1) * padding));
 
       if (true) {
         int insertIndex = checkNowRow(itemSize, itemCell, columnH, columnLastH);
@@ -390,14 +373,12 @@ class ProxyVerticalClass extends MultiChildLayoutDelegate {
           offsetX = 0;
           nowRowIndex = 0;
         } else {
-          offsetX = insertIndex * itemCell +
-              (insertIndex >= 1 ? insertIndex : 0) * padding;
+          offsetX = insertIndex * itemCell + (insertIndex >= 1 ? insertIndex : 0) * padding;
           nowRowIndex = insertIndex;
         }
       }
 
-      calculateItemPosition.add(ItemPosition(itemAll[i].id!,
-          Offset(offsetX + padding * 0.5, columnH[nowRowIndex])));
+      calculateItemPosition.add(ItemPosition(itemAll[i].id!, Offset(offsetX + padding * 0.5, columnH[nowRowIndex])));
 
       // 修改x轴偏移量
       offsetX += padding +
@@ -405,7 +386,7 @@ class ProxyVerticalClass extends MultiChildLayoutDelegate {
           ((itemAll[i].crossAxisCellCount ?? 1) - 1) * padding;
 
       // 放置后修改当前行的index指向
-      for (var c = 0; c < itemAll[i].crossAxisCellCount!; c++) {
+      for (int c = 0; c < itemAll[i].crossAxisCellCount!; c++) {
         columnH[nowRowIndex] += itemSize.height + padding;
         if (nowRowIndex < columnNum - 1) {
           nowRowIndex++;
@@ -418,12 +399,12 @@ class ProxyVerticalClass extends MultiChildLayoutDelegate {
 
   /// 放置item
   void positionItem(List<ItemPosition> itemPositionList) {
-    for (var element in itemPositionList) {
+    for (ItemPosition element in itemPositionList) {
       /// 放置当前widget
       positionChild(element.id, element.offset);
     }
     // 刷新最高高度
-    var tempHeight = 0.0;
+    double tempHeight = 0.0;
     for (var element in columnH) {
       tempHeight = max(tempHeight, element);
     }
@@ -435,12 +416,10 @@ class ProxyVerticalClass extends MultiChildLayoutDelegate {
   }
 
   /// 计算偏移量
-  List<ItemPosition> calculateOffset(List<ItemPosition> itemPositionList,
-      List<ItemPosition> dragItemPosition) {
+  List<ItemPosition> calculateOffset(List<ItemPosition> itemPositionList, List<ItemPosition> dragItemPosition) {
     List<ItemPosition> item = [];
-    for (var index = 0; index < itemAll.length; index++) {
-      Offset offset =
-          dragItemPosition[index].transform(itemPositionList[index]);
+    for (int index = 0; index < itemAll.length; index++) {
+      Offset offset = dragItemPosition[index].transform(itemPositionList[index]);
       item.add(ItemPosition(
           itemPositionList[index].id,
           Offset(itemPositionList[index].offset.dx + offset.dx * process,
@@ -460,9 +439,8 @@ class ProxyVerticalClass extends MultiChildLayoutDelegate {
     if (itemChangeAll.isEmpty) {
       positionItem(itemPositionList);
     } else {
-      List<ItemPosition> dragItemPosition =
-          calculateDragFormLayout(itemChangeAll);
-      var item = calculateOffset(itemPositionList, dragItemPosition);
+      List<ItemPosition> dragItemPosition = calculateDragFormLayout(itemChangeAll);
+      List<ItemPosition> item = calculateOffset(itemPositionList, dragItemPosition);
       positionItem(item);
     }
   }
@@ -472,18 +450,16 @@ class ProxyVerticalClass extends MultiChildLayoutDelegate {
     if (itemChangeAll.isEmpty || oldDelegate.itemChangeAll.isEmpty) {
       return false;
     }
-    for (var index = 0; index < itemAll.length; index++) {
+    for (int index = 0; index < itemAll.length; index++) {
       bool itemEqual = oldDelegate.itemAll[index].compare(itemAll[index]);
       if (!itemEqual) {
         return true;
       }
-      bool itemChangeEqual =
-          oldDelegate.itemChangeAll[index].compare(itemChangeAll[index]);
+      bool itemChangeEqual = oldDelegate.itemChangeAll[index].compare(itemChangeAll[index]);
       if (!itemChangeEqual) {
         return true;
       }
-      bool itemCompareEqual =
-          oldDelegate.itemAll[index].compare(itemChangeAll[index]);
+      bool itemCompareEqual = oldDelegate.itemAll[index].compare(itemChangeAll[index]);
       if (!itemCompareEqual) {
         return true;
       }
@@ -520,8 +496,8 @@ class ProxyVerticalClass extends MultiChildLayoutDelegate {
               ((itemChangeAll[i].crossAxisCellCount!) - 1) * padding,
           maxWidth: itemCell * (itemChangeAll[i].crossAxisCellCount!) +
               ((itemChangeAll[i].crossAxisCellCount!) - 1) * padding,
-          minHeight: itemCell * (itemChangeAll[i].mainAxisCellCount!) +
-              ((itemChangeAll[i].mainAxisCellCount!) - 1) * padding,
+          minHeight:
+              itemCell * (itemChangeAll[i].mainAxisCellCount!) + ((itemChangeAll[i].mainAxisCellCount!) - 1) * padding,
           maxHeight: itemCell * (itemChangeAll[i].mainAxisCellCount!) +
               ((itemChangeAll[i].mainAxisCellCount!) - 1) * padding));
 
@@ -532,14 +508,13 @@ class ProxyVerticalClass extends MultiChildLayoutDelegate {
           offsetX = 0;
           nowRowIndex = 0;
         } else {
-          offsetX = insertIndex * itemCell +
-              (insertIndex >= 1 ? insertIndex : 0) * padding;
+          offsetX = insertIndex * itemCell + (insertIndex >= 1 ? insertIndex : 0) * padding;
           nowRowIndex = insertIndex;
         }
       }
 
-      calculateItemPosition.add(ItemPosition(itemChangeAll[i].id!,
-          Offset(offsetX + padding * 0.5, columnH[nowRowIndex])));
+      calculateItemPosition
+          .add(ItemPosition(itemChangeAll[i].id!, Offset(offsetX + padding * 0.5, columnH[nowRowIndex])));
 
       // 修改x轴偏移量
       offsetX += padding +
@@ -547,7 +522,7 @@ class ProxyVerticalClass extends MultiChildLayoutDelegate {
           ((itemChangeAll[i].crossAxisCellCount ?? 1) - 1) * padding;
 
       // 放置后修改当前行的index指向
-      for (var c = 0; c < itemChangeAll[i].crossAxisCellCount!; c++) {
+      for (int c = 0; c < itemChangeAll[i].crossAxisCellCount!; c++) {
         columnH[nowRowIndex] += itemSize.height + padding;
         if (nowRowIndex < columnNum - 1) {
           nowRowIndex++;
@@ -568,8 +543,8 @@ class ProxyHorizontalClass extends MultiChildLayoutDelegate {
   final double padding;
   final double containerHeight;
 
-  ProxyHorizontalClass(this.itemAll, this.itemChangeAll, this.process,
-      this.columnNum, this.padding, this.containerHeight) {
+  ProxyHorizontalClass(
+      this.itemAll, this.itemChangeAll, this.process, this.columnNum, this.padding, this.containerHeight) {
     // 累计每行的宽度
     rowW = List.generate(columnNum, (index) {
       return 0.0;
@@ -589,11 +564,9 @@ class ProxyHorizontalClass extends MultiChildLayoutDelegate {
   /// 修改rowW
   /// 将上一行宽度更新成当前行的最大宽度
   void updateRowW(List rowW, List rowLastW) {
-    double maxHeight = rowW.fold(
-        rowW[0],
-        (previousValue, element) =>
-            previousValue > element ? previousValue : element);
-    for (var index = 0; index < rowW.length; index++) {
+    double maxHeight =
+        rowW.fold(rowW[0], (previousValue, element) => previousValue > element ? previousValue : element);
+    for (int index = 0; index < rowW.length; index++) {
       rowW[index] = maxHeight;
       rowLastW[index] = maxHeight;
     }
@@ -605,19 +578,16 @@ class ProxyHorizontalClass extends MultiChildLayoutDelegate {
   int checkNowColumn(Size size, double itemCell, List rowW, List rowLastW) {
     int insertIndex = -1;
     // 找到最大值
-    double maxWidth = rowW.fold(
-        rowW[0],
-        (previousValue, element) =>
-            previousValue > element ? previousValue : element);
+    double maxWidth = rowW.fold(rowW[0], (previousValue, element) => previousValue > element ? previousValue : element);
 
     // 判断本列是否都已经按列放满
-    for (var indexY = 0; indexY < rowW.length; indexY++) {
+    for (int indexY = 0; indexY < rowW.length; indexY++) {
       if (rowW[indexY] - rowLastW[indexY] < itemCell) {
         // 判断当前点是否符合长度
         int length = size.height ~/ itemCell;
         if (rowW.length - indexY >= length) {
           insertIndex = indexY;
-          for (var indexX = 0; indexX < length; indexX++) {
+          for (int indexX = 0; indexX < length; indexX++) {
             if (rowW[indexY + indexX] - rowLastW[indexY + indexX] < itemCell) {
             } else if (maxWidth - rowW[indexY + indexX] < size.width) {
               insertIndex = -1;
@@ -630,14 +600,14 @@ class ProxyHorizontalClass extends MultiChildLayoutDelegate {
     }
 
     // 判断本列是否存在可以放当前widget的空隙
-    for (var indexY = 0; indexY < rowW.length; indexY++) {
+    for (int indexY = 0; indexY < rowW.length; indexY++) {
       // print("$indexX: $maxHeight - ${columnH[indexX]} >= ${size.height}");
       if (maxWidth - rowW[indexY] >= size.width) {
         // 判断当前点是否符合长度
         int length = size.height ~/ itemCell;
         if (rowW.length - indexY >= length) {
           insertIndex = indexY;
-          for (var indexX = 0; indexX < length; indexX++) {
+          for (int indexX = 0; indexX < length; indexX++) {
             if (rowW[indexY + indexX] - rowLastW[indexY + indexX] < itemCell) {
             } else if (maxWidth - rowW[indexY + indexX] < size.width) {
               insertIndex = -1;
@@ -648,7 +618,7 @@ class ProxyHorizontalClass extends MultiChildLayoutDelegate {
         }
       }
     }
-    if(insertIndex == -1){
+    if (insertIndex == -1) {
       updateRowW(rowW, rowLastW);
     }
     return insertIndex;
@@ -656,12 +626,12 @@ class ProxyHorizontalClass extends MultiChildLayoutDelegate {
 
   /// 放置item
   void positionItem(List<ItemPosition> itemPositionList) {
-    for (var element in itemPositionList) {
+    for (ItemPosition element in itemPositionList) {
       /// 放置当前widget
       positionChild(element.id, element.offset);
     }
     // 刷新最大宽度
-    var tempWidth = 0.0;
+    double tempWidth = 0.0;
     for (var element in rowW) {
       tempWidth = max(tempWidth, element);
     }
@@ -673,12 +643,10 @@ class ProxyHorizontalClass extends MultiChildLayoutDelegate {
   }
 
   /// 计算偏移量
-  List<ItemPosition> calculateOffset(List<ItemPosition> itemPositionList,
-      List<ItemPosition> dragItemPosition) {
+  List<ItemPosition> calculateOffset(List<ItemPosition> itemPositionList, List<ItemPosition> dragItemPosition) {
     List<ItemPosition> item = [];
-    for (var index = 0; index < itemAll.length; index++) {
-      Offset offset =
-          dragItemPosition[index].transform(itemPositionList[index]);
+    for (int index = 0; index < itemAll.length; index++) {
+      Offset offset = dragItemPosition[index].transform(itemPositionList[index]);
       item.add(ItemPosition(
           itemPositionList[index].id,
           Offset(itemPositionList[index].offset.dx + offset.dx * process,
@@ -701,14 +669,10 @@ class ProxyHorizontalClass extends MultiChildLayoutDelegate {
       Size itemSize = layoutChild(
           itemAll[i].id!,
           BoxConstraints(
-              minWidth: itemCell * (itemAll[i].crossAxisCellCount!) +
-                  ((itemAll[i].crossAxisCellCount!) - 1) * padding,
-              maxWidth: itemCell * (itemAll[i].crossAxisCellCount!) +
-                  ((itemAll[i].crossAxisCellCount!) - 1) * padding,
-              minHeight: itemCell * (itemAll[i].mainAxisCellCount!) +
-                  ((itemAll[i].mainAxisCellCount!) - 1) * padding,
-              maxHeight: itemCell * (itemAll[i].mainAxisCellCount!) +
-                  ((itemAll[i].mainAxisCellCount!) - 1) * padding));
+              minWidth: itemCell * (itemAll[i].crossAxisCellCount!) + ((itemAll[i].crossAxisCellCount!) - 1) * padding,
+              maxWidth: itemCell * (itemAll[i].crossAxisCellCount!) + ((itemAll[i].crossAxisCellCount!) - 1) * padding,
+              minHeight: itemCell * (itemAll[i].mainAxisCellCount!) + ((itemAll[i].mainAxisCellCount!) - 1) * padding,
+              maxHeight: itemCell * (itemAll[i].mainAxisCellCount!) + ((itemAll[i].mainAxisCellCount!) - 1) * padding));
 
       // 当前widget竖排布后越界处理
       if (true) {
@@ -717,23 +681,20 @@ class ProxyHorizontalClass extends MultiChildLayoutDelegate {
           offsetY = 0;
           nowColumIndex = 0;
         } else {
-          offsetY = insertIndex * itemCell +
-              (insertIndex >= 1 ? insertIndex : 0) * padding;
+          offsetY = insertIndex * itemCell + (insertIndex >= 1 ? insertIndex : 0) * padding;
           nowColumIndex = insertIndex;
         }
       }
 
-      calculateItemPosition.add(ItemPosition(itemAll[i].id!,
-          Offset(rowW[nowColumIndex], offsetY + padding * 0.5)));
+      calculateItemPosition.add(ItemPosition(itemAll[i].id!, Offset(rowW[nowColumIndex], offsetY + padding * 0.5)));
 
       // 修改y轴偏移量
       offsetY += padding +
           itemCell * (itemAll[i].crossAxisCellCount ?? 1) +
           ((itemAll[i].crossAxisCellCount ?? 1) - 1) * padding;
 
-
       // 放置后修改当前行的index指向
-      for (var c = 0; c < itemAll[i].mainAxisCellCount!; c++) {
+      for (int c = 0; c < itemAll[i].mainAxisCellCount!; c++) {
         rowW[nowColumIndex] += itemSize.width + padding;
         if (nowColumIndex < columnNum - 1) {
           nowColumIndex++;
@@ -746,15 +707,13 @@ class ProxyHorizontalClass extends MultiChildLayoutDelegate {
 
   @override
   void performLayout(Size size) {
-
     List<ItemPosition> itemPositionList = calculateFormLayout(itemAll);
 
     if (itemChangeAll.isEmpty) {
       positionItem(itemPositionList);
     } else {
-      List<ItemPosition> dragItemPosition =
-          calculateDragFormLayout(itemChangeAll);
-      var item = calculateOffset(itemPositionList, dragItemPosition);
+      List<ItemPosition> dragItemPosition = calculateDragFormLayout(itemChangeAll);
+      List<ItemPosition> item = calculateOffset(itemPositionList, dragItemPosition);
       positionItem(item);
     }
   }
@@ -764,18 +723,16 @@ class ProxyHorizontalClass extends MultiChildLayoutDelegate {
     if (itemChangeAll.isEmpty || oldDelegate.itemChangeAll.isEmpty) {
       return false;
     }
-    for (var index = 0; index < itemAll.length; index++) {
+    for (int index = 0; index < itemAll.length; index++) {
       bool itemEqual = oldDelegate.itemAll[index].compare(itemAll[index]);
       if (!itemEqual) {
         return true;
       }
-      bool itemChangeEqual =
-          oldDelegate.itemChangeAll[index].compare(itemChangeAll[index]);
+      bool itemChangeEqual = oldDelegate.itemChangeAll[index].compare(itemChangeAll[index]);
       if (!itemChangeEqual) {
         return true;
       }
-      bool itemCompareEqual =
-          oldDelegate.itemAll[index].compare(itemChangeAll[index]);
+      bool itemCompareEqual = oldDelegate.itemAll[index].compare(itemChangeAll[index]);
       if (!itemCompareEqual) {
         return true;
       }
@@ -807,16 +764,15 @@ class ProxyHorizontalClass extends MultiChildLayoutDelegate {
     int nowColumIndex = 0;
     for (int i = 0; i < itemChangeAll.length; i++) {
       // 获取当前widget宽高限制
-      Size itemSize = getSize(
-          BoxConstraints(
-              minWidth: itemCell * (itemChangeAll[i].crossAxisCellCount!) +
-                  ((itemChangeAll[i].crossAxisCellCount!) - 1) * padding,
-              maxWidth: itemCell * (itemChangeAll[i].crossAxisCellCount!) +
-                  ((itemChangeAll[i].crossAxisCellCount!) - 1) * padding,
-              minHeight: itemCell * (itemChangeAll[i].mainAxisCellCount!) +
-                  ((itemChangeAll[i].mainAxisCellCount!) - 1) * padding,
-              maxHeight: itemCell * (itemChangeAll[i].mainAxisCellCount!) +
-                  ((itemChangeAll[i].mainAxisCellCount!) - 1) * padding));
+      Size itemSize = getSize(BoxConstraints(
+          minWidth: itemCell * (itemChangeAll[i].crossAxisCellCount!) +
+              ((itemChangeAll[i].crossAxisCellCount!) - 1) * padding,
+          maxWidth: itemCell * (itemChangeAll[i].crossAxisCellCount!) +
+              ((itemChangeAll[i].crossAxisCellCount!) - 1) * padding,
+          minHeight:
+              itemCell * (itemChangeAll[i].mainAxisCellCount!) + ((itemChangeAll[i].mainAxisCellCount!) - 1) * padding,
+          maxHeight: itemCell * (itemChangeAll[i].mainAxisCellCount!) +
+              ((itemChangeAll[i].mainAxisCellCount!) - 1) * padding));
 
       // 当前widget竖排布后越界处理
       if (true) {
@@ -825,23 +781,21 @@ class ProxyHorizontalClass extends MultiChildLayoutDelegate {
           offsetY = 0;
           nowColumIndex = 0;
         } else {
-          offsetY = insertIndex * itemCell +
-              (insertIndex >= 1 ? insertIndex : 0) * padding;
+          offsetY = insertIndex * itemCell + (insertIndex >= 1 ? insertIndex : 0) * padding;
           nowColumIndex = insertIndex;
         }
       }
 
-      calculateItemPosition.add(ItemPosition(itemChangeAll[i].id!,
-          Offset(rowW[nowColumIndex], offsetY + padding * 0.5)));
+      calculateItemPosition
+          .add(ItemPosition(itemChangeAll[i].id!, Offset(rowW[nowColumIndex], offsetY + padding * 0.5)));
 
       // 修改y轴偏移量
       offsetY += padding +
           itemCell * (itemChangeAll[i].crossAxisCellCount ?? 1) +
           ((itemChangeAll[i].crossAxisCellCount ?? 1) - 1) * padding;
 
-
       // 放置后修改当前行的index指向
-      for (var c = 0; c < itemChangeAll[i].mainAxisCellCount!; c++) {
+      for (int c = 0; c < itemChangeAll[i].mainAxisCellCount!; c++) {
         rowW[nowColumIndex] += itemSize.width + padding;
         if (nowColumIndex < columnNum - 1) {
           nowColumIndex++;
