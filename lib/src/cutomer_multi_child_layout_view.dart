@@ -16,38 +16,93 @@ double maxContainerWidth = 0.0;
 /// 单元格大小
 double itemCell = 0.0;
 
-class CustomerMultiChildView extends StatefulWidget {
-  final int columnNum;
-  final List<CustomerItem> itemAll;
-  final double spacing;
-  final Duration duration;
-  final Duration antiShakeDuration;
-  final bool collation;
-  final bool canDrag;
+class StaggeredReorderableView extends StatefulWidget {
+  /// 布局方向[Axis.vertical] 和[Axis.horizontal]。
+  /// 默认[Axis.vertical]，布局为垂直布局。
   final Axis scrollDirection;
-  final Color backgroundColor;
-  final Color onDragBackgroundColor;
+
+  /// 动画时间，默认[Duration(milliseconds: 300)]。
+  final Duration duration;
+
+  /// 防抖时间，默认[Duration(milliseconds: 100)]
+  final Duration antiShakeDuration;
+
+  /// 拖拽后变换规则，[true]为交换，[false]为插入
+  final bool collation;
+
+  /// 布局的子项
+  /// [ReorderableItem.id]不允许存在重复值
+  /// [ReorderableItem.index]不允许存在重复值
+  final List<ReorderableItem> children;
+
+  /// 每行个数
+  final int columnNum;
+
+  /// 边距
+  final double spacing;
+
+  /// 是否允许拖拽
+  final bool canDrag;
+
+  /// 布局区域高度，仅在[Axis.horizontal]时生效
   final double containerHeight;
-  const CustomerMultiChildView({
+
+  /// The background [Color] of the container. Defaults to [Colors.grey]
+  final Color backgroundColor;
+
+  /// The background [Color] of the container while being dragged. Defaults to [Colors.white]
+  final Color onDragBackgroundColor;
+
+  /// 创建一个可拖动的不规则图形瀑布流.
+  ///
+  /// [canDrag] : 控制是否允许拖动,默认为`true`.
+  ///
+  /// [columnNum] : 控制每行([Axis.vertical])/每列([Axis.horizontal])展示的基本单元数量,默认为每行.
+  ///
+  /// [scrollDirection] : 控制排版方向,默认为[Axis.vertical].
+  ///
+  /// [duration] : 每次交换的动画持续时间,默认0.3s.
+  ///
+  /// [antiShakeDuration] : 防抖时间,默认0.1s.
+  ///
+  /// [collation] : 拖拽交换规则,[true]为交换，[false]为插入.
+  ///
+  /// [containerHeight] : 当 [scrollDirection] 选择 [Axis.horizontal] 时,才会生效.
+
+  final Function()? onDragStarted;
+  final Function()? onDraggableCanceled;
+  final Function()? onDragCompleted;
+  final Function()? onWillAccept;
+  final Function()? onLeave;
+  final Function(int idx, String id)? onTap;
+
+  const StaggeredReorderableView({
     Key? key,
-    required this.itemAll,
-    required this.spacing,
-    required this.duration,
-    required this.canDrag,
-    required this.collation,
-    required this.columnNum,
-    required this.containerHeight,
-    required this.scrollDirection,
-    required this.backgroundColor,
-    required this.antiShakeDuration,
-    required this.onDragBackgroundColor,
+    required this.children,
+    this.spacing = 8,
+    this.columnNum = 3,
+    // TODO: Fix spacing error that doesn't center objects. The problem is that it leaves the spacing in the last position of a row, making all widgets align "start" in the row
+    this.canDrag = true,
+    this.collation = false,
+    this.containerHeight = 600.0,
+    this.backgroundColor = Colors.transparent,
+    this.onDragBackgroundColor = Colors.white10,
+    this.scrollDirection = Axis.vertical,
+    this.duration = const Duration(milliseconds: 300),
+    this.antiShakeDuration = const Duration(milliseconds: 100),
+    this.onDragStarted,
+    this.onDraggableCanceled,
+    this.onDragCompleted,
+    this.onWillAccept,
+    this.onLeave,
+    this.onTap,
   }) : super(key: key);
 
   @override
-  _CustomerMultiChildViewState createState() => _CustomerMultiChildViewState();
+  _StaggeredReorderableViewState createState() => _StaggeredReorderableViewState();
 }
 
-class _CustomerMultiChildViewState extends State<CustomerMultiChildView> with SingleTickerProviderStateMixin {
+class _StaggeredReorderableViewState extends State<StaggeredReorderableView> with SingleTickerProviderStateMixin {
   /// 正在拖拽的item
   int dragItem = -1;
 
@@ -60,15 +115,15 @@ class _CustomerMultiChildViewState extends State<CustomerMultiChildView> with Si
   /// 拖拽进度
   double process = 0.0;
 
-  List<CustomerItem> itemAll = [];
+  List<ReorderableItem> children = [];
 
-  List<CustomerItem> itemChangeAll = [];
+  List<ReorderableItem> itemChangeAll = [];
 
   late AnimationController _controller;
 
   @override
   void initState() {
-    itemAll = widget.itemAll;
+    children = widget.children;
     _controller = AnimationController(
       lowerBound: 0.0,
       upperBound: 1.0,
@@ -108,13 +163,13 @@ class _CustomerMultiChildViewState extends State<CustomerMultiChildView> with Si
   /// 交换数据
   void exchangeItem(moveIndex, toIndex) {
     if (itemChangeAll.isEmpty) {
-      for (CustomerItem element in itemAll) {
+      for (ReorderableItem element in children) {
         itemChangeAll.add(element);
       }
     }
     if (!widget.collation) {
       setState(() {
-        CustomerItem moveData = itemChangeAll.firstWhere((element) => element.index == moveIndex);
+        ReorderableItem moveData = itemChangeAll.firstWhere((element) => element.index == moveIndex);
         int reIndex = itemChangeAll.indexOf(moveData);
         itemChangeAll.remove(moveData);
         int receiveIndex = itemChangeAll.indexWhere((element) => element.index == toIndex);
@@ -127,13 +182,13 @@ class _CustomerMultiChildViewState extends State<CustomerMultiChildView> with Si
       //   print(element.toString());
       // });
       setState(() {
-        CustomerItem moveData = itemChangeAll.firstWhere((element) => element.index == moveIndex);
+        ReorderableItem moveData = itemChangeAll.firstWhere((element) => element.index == moveIndex);
         int reIndex = itemChangeAll.indexOf(moveData);
         itemChangeAll.remove(moveData);
         int receiveIndex = itemChangeAll.indexWhere((element) => element.index == toIndex);
         // if (receiveIndex >= reIndex) receiveIndex += 1;
         itemChangeAll.insert(receiveIndex, moveData);
-        CustomerItem receiveData = itemChangeAll.removeAt(receiveIndex + 1);
+        ReorderableItem receiveData = itemChangeAll.removeAt(receiveIndex + 1);
         itemChangeAll.insert(reIndex, receiveData);
       });
       // print("交换后状态");
@@ -144,40 +199,46 @@ class _CustomerMultiChildViewState extends State<CustomerMultiChildView> with Si
   }
 
   changeItemChangeAllToItemAll() async {
-    itemAll = itemChangeAll;
+    children = itemChangeAll;
     itemChangeAll = [];
   }
 
   /// 子项
   Widget generateItem(int index) {
     return LayoutId(
-        id: itemAll[index].id!,
+      id: children[index].id!,
+      child: GestureDetector(
+        onTap: () => widget.onTap?.call(index, children[index].id!),
         child: widget.canDrag
             ? LongPressDraggable(
-                data: itemAll[index].index,
+                data: children[index].index,
                 childWhenDragging: null,
                 feedback: Material(
+                  color: Colors.transparent,
                   child: Container(
-                    width: itemAll[index].crossAxisCellCount! * itemCell,
-                    height: itemAll[index].mainAxisCellCount! * itemCell,
+                    width: children[index].crossAxisCellCount! * itemCell,
+                    height: children[index].mainAxisCellCount! * itemCell,
                     color: widget.onDragBackgroundColor,
                     child: SizedBox(
                       width: double.infinity,
                       height: double.infinity,
                       child: Center(
-                        child: itemAll[index].child,
+                        child: children[index].child,
                       ),
                     ),
                   ),
                 ),
                 onDragStarted: () {
+                  widget.onDragStarted?.call();
                   // print('=== onDragStarted');
-                  dragItem = itemAll[index].index!;
+                  dragItem = children[index].index!;
                 },
                 onDraggableCanceled: (Velocity velocity, Offset offset) {
+                  widget.onDraggableCanceled?.call();
                   // print('=== onDraggableCanceled');
                 },
                 onDragCompleted: () {
+                  widget.onDragCompleted?.call();
                   // print('=== onDragCompleted');
                   dragItem = -1;
                   nowAcceptIndex = -1;
@@ -186,50 +247,54 @@ class _CustomerMultiChildViewState extends State<CustomerMultiChildView> with Si
                 child: DragTarget(
                   builder: (context, candidateData, rejectedData) {
                     return Container(
-                      width: itemAll[index].crossAxisCellCount! * itemCell,
-                      height: itemAll[index].mainAxisCellCount! * itemCell,
+                      width: children[index].crossAxisCellCount! * itemCell,
+                      height: children[index].mainAxisCellCount! * itemCell,
                       color: widget.backgroundColor,
                       child: SizedBox(
                         width: double.infinity,
                         height: double.infinity,
-                        child: Center(child: itemAll[index].child),
+                        child: Center(child: children[index].child),
                       ),
                     );
                   },
                   onWillAccept: (moveData) {
+                    widget.onWillAccept?.call();
                     // print('=== onWillAccept: $moveData ==> ${itemAll[index].index}');
                     bool accept = moveData != null;
-                    if (accept && dragItem != itemAll[index].index! && itemAll[index].index != moveData) {
-                      antiShakeProcessing(moveData, itemAll[index].index);
+                    if (accept && dragItem != children[index].index! && children[index].index != moveData) {
+                      antiShakeProcessing(moveData, children[index].index);
                     }
                     return accept;
                   },
                   onLeave: (moveData) {
+                    widget.onLeave?.call();
                     // print('=== onLeave: $moveData ==> ${itemAll[index].index}');
                     if (moveData == nowMoveIndex) {
                       nowMoveIndex = -1;
                     }
-                    if (itemAll[index].index == nowAcceptIndex) {
+                    if (children[index].index == nowAcceptIndex) {
                       nowAcceptIndex = -1;
                     }
                   },
                 ),
               )
             : Container(
-                width: itemAll[index].crossAxisCellCount! * itemCell,
-                height: itemAll[index].mainAxisCellCount! * itemCell,
+                width: children[index].crossAxisCellCount! * itemCell,
+                height: children[index].mainAxisCellCount! * itemCell,
                 color: widget.backgroundColor,
                 child: SizedBox(
                   width: double.infinity,
                   height: double.infinity,
-                  child: Center(child: itemAll[index].child),
+                  child: Center(child: children[index].child),
                 ),
-              ));
+              ),
+      ),
+    );
   }
 
   List<Widget> generateList() {
     List<Widget> list = [];
-    for (int index = 0; index < itemAll.length; index++) {
+    for (int index = 0; index < children.length; index++) {
       list.add(generateItem(index));
     }
     return list;
@@ -250,9 +315,9 @@ class _CustomerMultiChildViewState extends State<CustomerMultiChildView> with Si
         width: maxContainerWidth,
         child: CustomMultiChildLayout(
           delegate: widget.scrollDirection == Axis.vertical
-              ? ProxyVerticalClass(itemAll, itemChangeAll, process, widget.columnNum, widget.spacing)
+              ? ProxyVerticalClass(children, itemChangeAll, process, widget.columnNum, widget.spacing)
               : ProxyHorizontalClass(
-                  itemAll, itemChangeAll, process, widget.columnNum, widget.spacing, widget.containerHeight),
+                  children, itemChangeAll, process, widget.columnNum, widget.spacing, widget.containerHeight),
           children: generateList(),
         ),
       ),
@@ -262,8 +327,8 @@ class _CustomerMultiChildViewState extends State<CustomerMultiChildView> with Si
 
 /// [Axis.vertical]
 class ProxyVerticalClass extends MultiChildLayoutDelegate {
-  final List<CustomerItem> itemAll;
-  final List<CustomerItem> itemChangeAll;
+  final List<ReorderableItem> itemAll;
+  final List<ReorderableItem> itemChangeAll;
   final double process;
   final int columnNum;
   final double padding;
@@ -350,7 +415,7 @@ class ProxyVerticalClass extends MultiChildLayoutDelegate {
 
   /// 实际计算每个item位置，
   /// 返回所有所有item信息
-  List<ItemPosition> calculateFormLayout(List<CustomerItem> itemAll) {
+  List<ItemPosition> calculateFormLayout(List<ReorderableItem> itemAll) {
     List<ItemPosition> calculateItemPosition = [];
     // x轴偏移量
     double offsetX = 0;
@@ -471,7 +536,7 @@ class ProxyVerticalClass extends MultiChildLayoutDelegate {
   }
 
   /// 计算拖拽排序后的item位置(拖拽)
-  List<ItemPosition> calculateDragFormLayout(List<CustomerItem> itemChangeAll) {
+  List<ItemPosition> calculateDragFormLayout(List<ReorderableItem> itemChangeAll) {
     List<ItemPosition> calculateItemPosition = [];
 
     // 累计每列的高度
@@ -536,8 +601,8 @@ class ProxyVerticalClass extends MultiChildLayoutDelegate {
 
 /// [Axis.horizontal]
 class ProxyHorizontalClass extends MultiChildLayoutDelegate {
-  final List<CustomerItem> itemAll;
-  final List<CustomerItem> itemChangeAll;
+  final List<ReorderableItem> itemAll;
+  final List<ReorderableItem> itemChangeAll;
   final double process;
   final int columnNum;
   final double padding;
@@ -656,7 +721,7 @@ class ProxyHorizontalClass extends MultiChildLayoutDelegate {
   }
 
   /// 计算每个item位置
-  List<ItemPosition> calculateFormLayout(List<CustomerItem> itemAll) {
+  List<ItemPosition> calculateFormLayout(List<ReorderableItem> itemAll) {
     List<ItemPosition> calculateItemPosition = [];
 
     // Y轴偏移量
@@ -744,7 +809,7 @@ class ProxyHorizontalClass extends MultiChildLayoutDelegate {
   }
 
   /// 计算拖拽排序后的item位置(拖拽)
-  List<ItemPosition> calculateDragFormLayout(List<CustomerItem> itemChangeAll) {
+  List<ItemPosition> calculateDragFormLayout(List<ReorderableItem> itemChangeAll) {
     List<ItemPosition> calculateItemPosition = [];
 
     // 累计每列的高度
