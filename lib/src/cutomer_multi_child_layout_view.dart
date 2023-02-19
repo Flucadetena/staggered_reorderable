@@ -32,7 +32,7 @@ class StaggeredReorderableView extends StatefulWidget {
 
   /// 布局的子项
   /// [ReorderableItem.id]不允许存在重复值
-  /// [ReorderableItem.index]不允许存在重复值
+  /// [ReorderableItem.trackingNumber]不允许存在重复值
   final List<ReorderableItem> children;
 
   /// 每行个数
@@ -70,8 +70,9 @@ class StaggeredReorderableView extends StatefulWidget {
   /// [containerHeight] : 当 [scrollDirection] 选择 [Axis.horizontal] 时,才会生效.
 
   final Function()? onDragStarted;
-  final Function()? onDraggableCanceled;
-  final Function()? onDragCompleted;
+  final Function(List<ReorderableItem>)? onDraggableCanceled;
+  final Function(List<ReorderableItem>)? onDragCompleted;
+  final Function(List<ReorderableItem>)? onAccept;
   final Function()? onWillAccept;
   final Function()? onLeave;
   final Function(int idx, String id)? onTap;
@@ -94,6 +95,7 @@ class StaggeredReorderableView extends StatefulWidget {
     this.onDraggableCanceled,
     this.onDragCompleted,
     this.onWillAccept,
+    this.onAccept,
     this.onLeave,
     this.onTap,
   }) : super(key: key);
@@ -169,10 +171,10 @@ class _StaggeredReorderableViewState extends State<StaggeredReorderableView> wit
     }
     if (!widget.collation) {
       setState(() {
-        ReorderableItem moveData = itemChangeAll.firstWhere((element) => element.index == moveIndex);
+        ReorderableItem moveData = itemChangeAll.firstWhere((element) => element.trackingNumber == moveIndex);
         int reIndex = itemChangeAll.indexOf(moveData);
         itemChangeAll.remove(moveData);
-        int receiveIndex = itemChangeAll.indexWhere((element) => element.index == toIndex);
+        int receiveIndex = itemChangeAll.indexWhere((element) => element.trackingNumber == toIndex);
         if (receiveIndex >= reIndex) receiveIndex += 1;
         itemChangeAll.insert(receiveIndex, moveData);
       });
@@ -182,10 +184,10 @@ class _StaggeredReorderableViewState extends State<StaggeredReorderableView> wit
       //   print(element.toString());
       // });
       setState(() {
-        ReorderableItem moveData = itemChangeAll.firstWhere((element) => element.index == moveIndex);
+        ReorderableItem moveData = itemChangeAll.firstWhere((element) => element.trackingNumber == moveIndex);
         int reIndex = itemChangeAll.indexOf(moveData);
         itemChangeAll.remove(moveData);
-        int receiveIndex = itemChangeAll.indexWhere((element) => element.index == toIndex);
+        int receiveIndex = itemChangeAll.indexWhere((element) => element.trackingNumber == toIndex);
         // if (receiveIndex >= reIndex) receiveIndex += 1;
         itemChangeAll.insert(receiveIndex, moveData);
         ReorderableItem receiveData = itemChangeAll.removeAt(receiveIndex + 1);
@@ -210,8 +212,8 @@ class _StaggeredReorderableViewState extends State<StaggeredReorderableView> wit
       child: GestureDetector(
         onTap: () => widget.onTap?.call(index, children[index].id!),
         child: widget.canDrag
-            ? LongPressDraggable(
-                data: children[index].index,
+            ? LongPressDraggable<int>(
+                data: children[index].trackingNumber,
                 childWhenDragging: null,
                 feedback: Material(
                   color: Colors.transparent,
@@ -231,20 +233,20 @@ class _StaggeredReorderableViewState extends State<StaggeredReorderableView> wit
                 onDragStarted: () {
                   widget.onDragStarted?.call();
                   // print('=== onDragStarted');
-                  dragItem = children[index].index!;
+                  dragItem = children[index].trackingNumber!;
                 },
                 onDraggableCanceled: (Velocity velocity, Offset offset) {
-                  widget.onDraggableCanceled?.call();
+                  widget.onDraggableCanceled?.call(children);
                   // print('=== onDraggableCanceled');
                 },
                 onDragCompleted: () {
-                  widget.onDragCompleted?.call();
+                  widget.onDragCompleted?.call(children);
                   // print('=== onDragCompleted');
                   dragItem = -1;
                   nowAcceptIndex = -1;
                   nowMoveIndex = -1;
                 },
-                child: DragTarget(
+                child: DragTarget<int>(
                   builder: (context, candidateData, rejectedData) {
                     return Container(
                       width: children[index].crossAxisCellCount! * itemCell,
@@ -257,12 +259,15 @@ class _StaggeredReorderableViewState extends State<StaggeredReorderableView> wit
                       ),
                     );
                   },
+                  onAccept: (data) {
+                    widget.onAccept?.call(children);
+                  },
                   onWillAccept: (moveData) {
                     widget.onWillAccept?.call();
                     // print('=== onWillAccept: $moveData ==> ${itemAll[index].index}');
                     bool accept = moveData != null;
-                    if (accept && dragItem != children[index].index! && children[index].index != moveData) {
-                      antiShakeProcessing(moveData, children[index].index);
+                    if (accept && dragItem != children[index].trackingNumber! && children[index].trackingNumber != moveData) {
+                      antiShakeProcessing(moveData, children[index].trackingNumber);
                     }
                     return accept;
                   },
@@ -272,7 +277,7 @@ class _StaggeredReorderableViewState extends State<StaggeredReorderableView> wit
                     if (moveData == nowMoveIndex) {
                       nowMoveIndex = -1;
                     }
-                    if (children[index].index == nowAcceptIndex) {
+                    if (children[index].trackingNumber == nowAcceptIndex) {
                       nowAcceptIndex = -1;
                     }
                   },

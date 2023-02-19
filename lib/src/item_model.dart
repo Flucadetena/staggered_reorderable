@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 ///
 /// 子项model
 class ReorderableItem {
-  int? index;
+  int? trackingNumber;
   String? id;
   int? crossAxisCellCount;
   int? mainAxisCellCount;
   Widget child;
 
-  ReorderableItem({this.index, this.id, required this.child, this.crossAxisCellCount = 1, this.mainAxisCellCount = 1});
+  ReorderableItem({this.trackingNumber, this.id, required this.child, this.crossAxisCellCount = 1, this.mainAxisCellCount = 1});
 
   bool compare(ReorderableItem next) {
     if (id == next.id &&
@@ -29,7 +29,7 @@ class ReorderableItem {
 
   @override
   String toString() {
-    return "index: $index, id: $id, crossAxisCellCount: $crossAxisCellCount, mainAxisCellCount: $mainAxisCellCount, child: $child";
+    return "index: $trackingNumber, id: $id, crossAxisCellCount: $crossAxisCellCount, mainAxisCellCount: $mainAxisCellCount, child: $child";
   }
 }
 
