@@ -29,7 +29,7 @@ class ReorderableItem {
 
   @override
   String toString() {
-    return "index: $trackingNumber, id: $id, crossAxisCellCount: $crossAxisCellCount, mainAxisCellCount: $mainAxisCellCount, child: $child";
+    return "trackingNumber: $trackingNumber, id: $id, crossAxisCellCount: $crossAxisCellCount, mainAxisCellCount: $mainAxisCellCount, child: $child";
   }
 }
 

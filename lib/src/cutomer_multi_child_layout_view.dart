@@ -70,8 +70,7 @@ class StaggeredReorderableView extends StatefulWidget {
   /// [containerHeight] : 当 [scrollDirection] 选择 [Axis.horizontal] 时,才会生效.
 
   final Function()? onDragStarted;
-  final Function(List<ReorderableItem>)? onDraggableCanceled;
-  final Function(List<ReorderableItem>)? onDragCompleted;
+  final Function(List<ReorderableItem>)? onOrderChange;
   final Function(List<ReorderableItem>)? onAccept;
   final Function()? onWillAccept;
   final Function()? onLeave;
@@ -92,8 +91,7 @@ class StaggeredReorderableView extends StatefulWidget {
     this.duration = const Duration(milliseconds: 300),
     this.antiShakeDuration = const Duration(milliseconds: 100),
     this.onDragStarted,
-    this.onDraggableCanceled,
-    this.onDragCompleted,
+    this.onOrderChange,
     this.onWillAccept,
     this.onAccept,
     this.onLeave,
@@ -203,6 +201,7 @@ class _StaggeredReorderableViewState extends State<StaggeredReorderableView> wit
   changeItemChangeAllToItemAll() async {
     children = itemChangeAll;
     itemChangeAll = [];
+    widget.onOrderChange?.call(children);
   }
 
   /// 子项
@@ -213,8 +212,8 @@ class _StaggeredReorderableViewState extends State<StaggeredReorderableView> wit
         onTap: () => widget.onTap?.call(index, children[index].id!),
         child: widget.canDrag
             ? LongPressDraggable<int>(
+                hapticFeedbackOnStart: true,
                 data: children[index].trackingNumber,
-                childWhenDragging: null,
                 feedback: Material(
                   color: Colors.transparent,
                   child: Container(
@@ -236,12 +235,11 @@ class _StaggeredReorderableViewState extends State<StaggeredReorderableView> wit
                   dragItem = children[index].trackingNumber!;
                 },
                 onDraggableCanceled: (Velocity velocity, Offset offset) {
-                  widget.onDraggableCanceled?.call(children);
-                  // print('=== onDraggableCanceled');
+                  dragItem = -1;
+                  nowAcceptIndex = -1;
+                  nowMoveIndex = -1;
                 },
                 onDragCompleted: () {
-                  widget.onDragCompleted?.call(children);
-                  // print('=== onDragCompleted');
                   dragItem = -1;
                   nowAcceptIndex = -1;
                   nowMoveIndex = -1;
@@ -266,7 +264,9 @@ class _StaggeredReorderableViewState extends State<StaggeredReorderableView> wit
                     widget.onWillAccept?.call();
                     // print('=== onWillAccept: $moveData ==> ${itemAll[index].index}');
                     bool accept = moveData != null;
-                    if (accept && dragItem != children[index].trackingNumber! && children[index].trackingNumber != moveData) {
+                    if (accept &&
+                        dragItem != children[index].trackingNumber! &&
+                        children[index].trackingNumber != moveData) {
                       antiShakeProcessing(moveData, children[index].trackingNumber);
                     }
                     return accept;
